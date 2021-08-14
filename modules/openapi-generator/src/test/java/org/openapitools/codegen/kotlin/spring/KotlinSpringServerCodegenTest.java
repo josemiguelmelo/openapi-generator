@@ -360,4 +360,59 @@ public class KotlinSpringServerCodegenTest {
                 "@org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)"
         );
     }
+
+    @Test(description = "test interface only generation")
+    public void generateInterfaceOnly() throws Exception {
+        File output = Files.createTempDirectory("test").toFile().getCanonicalFile(); //may be move to /build
+        KotlinSpringServerCodegen codegen = new KotlinSpringServerCodegen();
+        codegen.setOutputDir(output.getAbsolutePath());
+        codegen.additionalProperties().put(KotlinSpringServerCodegen.REACTIVE, true);
+        codegen.additionalProperties().put(KotlinSpringServerCodegen.INTERFACE_ONLY, true);
+        Assert.assertEquals(codegen.additionalProperties().get("interfaceOnly"), true);
+
+        List<File> files = new DefaultGenerator()
+                .opts(
+                        new ClientOptInput()
+                                .openAPI(TestUtils.parseSpec("src/test/resources/3_0/petstore.yaml"))
+                                .config(codegen)
+                )
+                .generate();
+
+        Helpers.assertContainsAllOf(files,
+                new File(output, "src/main/kotlin/org/openapitools/api/PetApi.kt")
+        );
+
+        assertFileContains(Paths.get(output + "/src/main/kotlin/org/openapitools/api/PetApi.kt"),
+                "suspend fun");
+        assertFileContains(Paths.get(output + "/src/main/kotlin/org/openapitools/api/PetApi.kt"),
+                "return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)");
+    }
+
+    @Test(description = "test generation of interface definition without implementation")
+    public void generateInterfaceOnlyWithSpec() throws Exception {
+        File output = Files.createTempDirectory("test").toFile().getCanonicalFile(); //may be move to /build
+        KotlinSpringServerCodegen codegen = new KotlinSpringServerCodegen();
+        codegen.setOutputDir(output.getAbsolutePath());
+        codegen.additionalProperties().put(KotlinSpringServerCodegen.REACTIVE, true);
+        codegen.additionalProperties().put(KotlinSpringServerCodegen.INTERFACE_SPEC_ONLY, true);
+        Assert.assertEquals(codegen.additionalProperties().get("interfaceSpecOnly"), true);
+
+        List<File> files = new DefaultGenerator()
+                .opts(
+                        new ClientOptInput()
+                                .openAPI(TestUtils.parseSpec("src/test/resources/3_0/petstore.yaml"))
+                                .config(codegen)
+                )
+                .generate();
+
+        Helpers.assertContainsAllOf(files,
+                new File(output, "src/main/kotlin/org/openapitools/api/PetApi.kt")
+        );
+
+        assertFileContains(Paths.get(output + "/src/main/kotlin/org/openapitools/api/PetApi.kt"),
+                "suspend fun");
+        assertFileNotContains(Paths.get(output + "/src/main/kotlin/org/openapitools/api/PetApi.kt"),
+                "return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)");
+    }
+
 }
